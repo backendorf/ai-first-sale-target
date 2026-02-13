@@ -4,7 +4,15 @@ import { ProgressBar } from './components/ProgressBar';
 import { StatCard } from './components/StatCard';
 import { getSalesAdvice } from './services/geminiService';
 
-const STORAGE_KEY = 'saletarget_data_v2';
+const STORAGE_KEY = 'saletarget_data_v3';
+
+const CURRENCIES = [
+  { symbol: '$', code: 'USD', name: 'US Dollar' },
+  { symbol: 'R$', code: 'BRL', name: 'Brazilian Real' },
+  { symbol: '€', code: 'EUR', name: 'Euro' },
+  { symbol: '£', code: 'GBP', name: 'British Pound' },
+  { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
+];
 
 const App: React.FC = () => {
   // --- State Initialization from Local Storage ---
@@ -20,6 +28,10 @@ const App: React.FC = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved).salesCount : 0;
   });
+  const [currency, setCurrency] = useState<string>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved).currency : '$';
+  });
 
   const [advice, setAdvice] = useState<string>("");
   const [isLoadingAdvice, setIsLoadingAdvice] = useState<boolean>(false);
@@ -30,14 +42,13 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
       targetAmount, 
       unitValue, 
-      salesCount 
+      salesCount,
+      currency
     }));
-  }, [targetAmount, unitValue, salesCount]);
+  }, [targetAmount, unitValue, salesCount, currency]);
 
   // --- Calculations ---
-  // If unitValue is 0 or empty, we treat it as 1 to avoid division by zero errors
   const safeUnitValue = useMemo(() => unitValue > 0 ? unitValue : 1, [unitValue]);
-  
   const currentAmount = useMemo(() => salesCount * unitValue, [salesCount, unitValue]);
   
   const percentage = useMemo(() => {
@@ -48,7 +59,6 @@ const App: React.FC = () => {
   const salesNeeded = useMemo(() => {
     const remaining = targetAmount - currentAmount;
     if (remaining <= 0) return 0;
-    // How many units of 'unitValue' are needed to cover the 'remaining' gap
     return Math.ceil(remaining / safeUnitValue);
   }, [targetAmount, currentAmount, safeUnitValue]);
 
@@ -69,7 +79,7 @@ const App: React.FC = () => {
 
   const fetchAdvice = async () => {
     setIsLoadingAdvice(true);
-    const result = await getSalesAdvice(targetAmount, currentAmount, unitValue);
+    const result = await getSalesAdvice(targetAmount, currentAmount, unitValue, currency);
     setAdvice(result || "Keep pushing.");
     setIsLoadingAdvice(false);
   };
@@ -93,9 +103,21 @@ const App: React.FC = () => {
 
         {/* Configuration Panel */}
         {showConfig && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-900 p-8 border-2 border-white animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-zinc-900 p-8 border-2 border-white animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="flex flex-col space-y-3">
-              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Global Sales Target ($)</label>
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Currency</label>
+              <select 
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="bg-black border-2 border-white p-4 text-2xl font-black focus:outline-none focus:bg-white focus:text-black transition-all appearance-none cursor-pointer"
+              >
+                {CURRENCIES.map(c => (
+                  <option key={c.code} value={c.symbol}>{c.symbol} ({c.code})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col space-y-3">
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Target ({currency})</label>
               <input 
                 type="number" 
                 value={targetAmount}
@@ -105,7 +127,7 @@ const App: React.FC = () => {
               />
             </div>
             <div className="flex flex-col space-y-3">
-              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Value per Sale ($)</label>
+              <label className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">Per Sale ({currency})</label>
               <input 
                 type="number" 
                 value={unitValue}
@@ -122,8 +144,8 @@ const App: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
               label="Current Revenue" 
-              value={`$${currentAmount.toLocaleString()}`} 
-              subValue={`Target: $${targetAmount.toLocaleString()}`}
+              value={`${currency}${currentAmount.toLocaleString()}`} 
+              subValue={`Target: ${currency}${targetAmount.toLocaleString()}`}
             />
             <StatCard 
               label="Success Count" 
@@ -134,7 +156,7 @@ const App: React.FC = () => {
               label="Remaining Steps" 
               value={salesNeeded} 
               className="bg-white text-black"
-              subValue={`Sales of $${unitValue} each`}
+              subValue={`Sales of ${currency}${unitValue} each`}
             />
           </div>
 
