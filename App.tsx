@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProgressBar } from './components/ProgressBar';
 import { StatCard } from './components/StatCard';
-import { getSalesAdvice } from './services/geminiService';
 
 const STORAGE_KEY = 'saletarget_data_v3';
 
@@ -76,13 +75,6 @@ const App: React.FC = () => {
       setSalesCount(0);
     }
   }, []);
-
-  const fetchAdvice = async () => {
-    setIsLoadingAdvice(true);
-    const result = await getSalesAdvice(targetAmount, currentAmount, unitValue, currency);
-    setAdvice(result || "Keep pushing.");
-    setIsLoadingAdvice(false);
-  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-4 md:p-8 selection:bg-white selection:text-black">
@@ -190,24 +182,6 @@ const App: React.FC = () => {
             >
               Reset
             </button>
-          </div>
-
-          {/* AI Strategy / Advice */}
-          <div className="mt-16 p-10 border-2 border-white border-dashed bg-zinc-950 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 -mr-16 -mt-16 rotate-45 pointer-events-none" />
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xs font-black uppercase tracking-[0.4em] italic text-zinc-400">Tactical Intel</h3>
-              <button 
-                onClick={fetchAdvice}
-                disabled={isLoadingAdvice}
-                className={`text-[10px] font-bold uppercase tracking-widest border border-white px-4 py-2 ${isLoadingAdvice ? 'opacity-30' : 'hover:bg-white hover:text-black transition-all'}`}
-              >
-                {isLoadingAdvice ? 'Analyzing...' : 'Refresh Intel'}
-              </button>
-            </div>
-            <p className="text-2xl font-light italic leading-relaxed text-zinc-200 max-w-2xl">
-              {advice || "Initialize your metrics to receive automated tactical advice for your objective."}
-            </p>
           </div>
         </main>
 
